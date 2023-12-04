@@ -51,6 +51,10 @@ def evaluate_model(
     beam_size: int = 5,
     max_batch_size: int = 2024,
     batch_type: str = "tokens",
+    target_tokenizer_model_path: Annotated[
+        str,
+        typer.Option(help="Tokenizer for target language (if different from source)"),
+    ] = None,
 ) -> None:
     """
     Evaluate the translation model
@@ -68,17 +72,29 @@ def evaluate_model(
         beam_size: beam size
         max_batch_size: max batch size
         batch_type: batch type
+        target_tokenizer_model_path: path to the target tokenizer model (
+            omit to use the same as source)
     Returns:
         None
     """
     start = time.time()
-    logger.info("Creating SentencePieceProcessor from %s...", tokenizer_model_path)
+    logger.info(f"Creating SentencePieceProcessor from {tokenizer_model_path}...")
 
     # Why not tokenizer = Tokenizer.from_file?
     sp_processor = spm.SentencePieceProcessor()
     sp_processor.Load(
         tokenizer_model_path
     )  # I don't know why the linter wants Load not load
+
+    if target_tokenizer_model_path:
+        logger.info(
+            "Creating SentencePieceProcessor from {target_tokenizer_model_path}...",
+        )
+        sp_processor_target = spm.SentencePieceProcessor()
+        sp_processor_target.Load(target_tokenizer_model_path)
+    else:
+        sp_processor_target = sp_processor
+
     logger.info("SentencePieceProcessor was created!")
     log_hr()
     logger.info(
@@ -117,7 +133,7 @@ def evaluate_model(
     translations_decoded = decode_sentences(
         translated_sentences_tokenized=translated_sentences_tokenized,
         target_prefix=target_prefix,
-        sp_processor=sp_processor,
+        sp_processor=sp_processor_target,
     )
     logger.info("Decoding completed")
     log_hr()
