@@ -1,6 +1,9 @@
-from typing import Dict, List
-
-import pandas as pd
+"""
+This module contains the functions to write the evaluation results to a file
+(and maybe more in the future)
+"""
+from typing import Dict, List, Any
+import csv
 
 
 def write_to_file(
@@ -10,13 +13,29 @@ def write_to_file(
     validation_sentences: List[str],
     metrics_evaluated: Dict[str, List[float]],
 ) -> None:
-    evaluation_entity = {
+    """
+    Write the evaluation results to a file
+    Args:
+        target_file_path: path to the target file
+        source_sentences: list of source sentences
+        translation_sentences: list of translated sentences
+        validation_sentences: list of validation sentences
+        metrics_evaluated: dictionary of metrics evaluated
+    Returns:
+        None
+    """
+    evaluation_entity: Dict[str, List[Any]] = {
         "source": source_sentences,
         "original_translation": validation_sentences,
         "mt_translation": translation_sentences,
     }
-    for metric, scores in metrics_evaluated.items():
-        evaluation_entity[metric] = scores
-    df = pd.DataFrame.from_dict(evaluation_entity)
+    evaluation_entity.update(metrics_evaluated)
 
-    df.to_csv(target_file_path)
+    evaluation_entity_list: List[Dict[str, Any]] = [
+        dict(zip(evaluation_entity, t)) for t in zip(*evaluation_entity.values())
+    ]
+
+    with open(target_file_path, "w", encoding="utf-8") as fp_out:
+        writer = csv.DictWriter(fp_out, fieldnames=evaluation_entity_list[0].keys())
+        writer.writeheader()
+        writer.writerows(evaluation_entity_list)
