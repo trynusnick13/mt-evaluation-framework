@@ -5,8 +5,8 @@ The main module of the application
 import time
 from typing import Callable, Dict, List
 
-import sentencepiece as spm
-import typer
+import sentencepiece as spm  # type: ignore
+import typer  # type: ignore
 from typing_extensions import Annotated
 
 from mt_evaluation.file_utils import write_to_file
@@ -16,6 +16,7 @@ from mt_evaluation.metrics_utils import (
     evaluate_meteor_score_per_sentence,
     evaluate_nist_score_per_sentence,
     evaluate_ter_score_per_sentence,
+    evaluate_comet_score_per_sentence,
 )
 from mt_evaluation.sentence_utils import (
     decode_sentences,
@@ -29,6 +30,7 @@ app = typer.Typer()
 METRIC_TO_FUNCTION: Dict[str, Callable] = {
     "bleu": evaluate_bleu_score_per_sentence,
     "meteor": evaluate_meteor_score_per_sentence,
+    "comet": evaluate_comet_score_per_sentence,
     "nist": evaluate_nist_score_per_sentence,
     "ter": evaluate_ter_score_per_sentence,
 }
@@ -74,7 +76,9 @@ def evaluate_model(
 
     # Why not tokenizer = Tokenizer.from_file?
     sp_processor = spm.SentencePieceProcessor()
-    sp_processor.Load(tokenizer_model_path)  # I don't know why the linter wants Load not load
+    sp_processor.Load(
+        tokenizer_model_path
+    )  # I don't know why the linter wants Load not load
     logger.info("SentencePieceProcessor was created!")
     log_hr()
     logger.info(
