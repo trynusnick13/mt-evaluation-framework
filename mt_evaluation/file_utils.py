@@ -39,3 +39,21 @@ def write_to_file(
         writer = csv.DictWriter(fp_out, fieldnames=evaluation_entity_list[0].keys())
         writer.writeheader()
         writer.writerows(evaluation_entity_list)
+
+
+def get_sentences_from_file(source_file_path: str, field_name: str) -> List[str]:
+    """
+    Get all sentences from a single column from csv file
+    Args:
+        source_file_path: path to the source file
+        field_name: column with sentences to be extracted
+    Returns:
+        List[str]
+    """
+    all_sentences: List[str] = []
+    with open(source_file_path, "r", encoding="utf-8") as fp_in:
+        reader = csv.DictReader(fp_in)
+        for row in reader:
+            all_sentences.append(row[field_name])
+
+    return all_sentences
