@@ -9,7 +9,7 @@ import sentencepiece as spm  # type: ignore
 import typer  # type: ignore
 from typing_extensions import Annotated
 
-from mt_evaluation.file_utils import write_to_file
+from mt_evaluation.file_utils import write_to_file, get_sentences_from_file
 from mt_evaluation.logger import logger, log_hr
 from mt_evaluation.metrics_utils import (
     evaluate_bleu_score_per_sentence,
@@ -160,6 +160,64 @@ def evaluate_model(
         source_sentences=source_sentences,
         # TODO: here you want to provide the list of sentences List[str]
         translation_sentences=translations_decoded,
+        validation_sentences=validation_sentences,
+        metrics_evaluated=metrics_evaluated,
+    )
+    logger.info("Results saved")
+    log_hr()
+    logger.info(f"Execution lasted for {time.time() - start}")
+
+
+@app.command()
+def evaluate_сsv(
+    source_file_path: Annotated[str, typer.Option()],
+    target_file_path: Annotated[str, typer.Option()],
+    validation_field_name: Annotated[str, typer.Option()],
+    translation_field_name: Annotated[str, typer.Option()],
+    source_field_name: Annotated[str, typer.Option()],
+    metrics: Annotated[List[str], typer.Option()] = ["bleu", "meteor"],
+) -> None:
+    """
+    Evaluate the csv file with translations
+    Args:
+        source_file_path: path to the source file
+        target_file_path: path to the target file
+        validation_field_name: validation field name
+        translation_field_name: translation field name
+        source_field_name: source field name
+        metrics: list of metrics to evaluate
+    Returns:
+        None
+    """
+    start = time.time()
+    logger.info("Evaluating the results...")
+    source_sentences = get_sentences_from_file(source_file_path, source_field_name)
+    validation_sentences = get_sentences_from_file(
+        source_file_path, validation_field_name
+    )
+    translation_sentences = get_sentences_from_file(
+        source_file_path, translation_field_name
+    )
+    metrics_evaluated: Dict[str, List[float]] = {}
+    for metric in metrics:
+        if metric not in METRIC_TO_FUNCTION:
+            logger.error(
+                f"Metric {metric} is not available. Please select from {METRIC_TO_FUNCTION.keys()}",
+            )
+        else:
+            evaluation_results = METRIC_TO_FUNCTION[metric](
+                translation_sentences=translation_sentences,
+                validation_sentences=validation_sentences,
+            )
+        metrics_evaluated[metric] = evaluation_results
+
+    logger.info("Evaluation completed")
+    log_hr()
+    logger.info(f"Writing results to file {target_file_path}...")
+    write_to_file(
+        target_file_path=target_file_path,
+        source_sentences=source_sentences,
+        translation_sentences=translation_sentences,
         validation_sentences=validation_sentences,
         metrics_evaluated=metrics_evaluated,
     )
