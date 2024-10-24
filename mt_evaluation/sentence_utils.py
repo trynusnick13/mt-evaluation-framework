@@ -1,6 +1,7 @@
 """
 A module to work with sentences: read, translate, encode, decode
 """
+
 from typing import List, Tuple
 import csv
 
