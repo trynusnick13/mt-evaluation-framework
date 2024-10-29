@@ -168,25 +168,45 @@ def evaluate_comet(
             source_sentences, translation_sentences, validation_sentences
         )
     ]
-    model_output = model.predict(data, batch_size=1, gpus=0)
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
 
     return model_output
 
 
 def evaluate_cometkiwi_da_xl(
     translation_sentences: List[str],
-    validation_sentences: List[str],
     source_sentences: List[str],
 ) -> List[float]:
     model_path = download_model("Unbabel/wmt23-cometkiwi-da-xl")
     model = load_from_checkpoint(model_path)
     data = [
-        {"src": src, "mt": mt, "ref": ref}
-        for src, mt, ref in zip(
-            source_sentences, translation_sentences, validation_sentences
-        )
+        {"src": src, "mt": mt}
+        for src, mt in zip(source_sentences, translation_sentences)
     ]
-    model_output = model.predict(data, batch_size=1, gpus=0)
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
+
+def evaluate_cometkiwi_da_xxl(
+    translation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/wmt23-cometkiwi-da-xxl")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt}
+        for src, mt in zip(source_sentences, translation_sentences)
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
     return model_output
 
 
@@ -203,8 +223,32 @@ def evaluate_xcomet_xxl(
             source_sentences, translation_sentences, validation_sentences
         )
     ]
-    model_output = model.predict(data, batch_size=1, gpus=0)
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
     return model_output
+
+
+def evaluate_xcomet_xl(
+    translation_sentences: List[str],
+    validation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/XCOMET-XL")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt, "ref": ref}
+        for src, mt, ref in zip(
+            source_sentences, translation_sentences, validation_sentences
+        )
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
 
 
 def evaluate_bert_score(
