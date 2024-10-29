@@ -6,7 +6,7 @@ authors = [
     { name = "Nikita Trynus", email = "trynuspoc@gmail.com" }
 ]
 readme = "README.md"
-requires-python = ">= 3.12"
+requires-python = ">= 3.10"
 dependencies = [
     "evaluate>=0.4.3",
     "typer>=0.12.5",
@@ -27,5 +27,5 @@ dev-dependencies = [
 ]
 
 [tool.rye.scripts]
-evaluate = { cmd = ["python", "mt_evaluation/main.py"] }
+evaluate = { cmd = ["python", "mt_evaluation/main.py", "evaluate-file"] }
 
