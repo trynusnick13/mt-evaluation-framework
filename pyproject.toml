@@ -1,32 +1,31 @@
-[tool.poetry]
+[project]
 name = "mt-evaluation-framework"
-version = "0.1.0"
-description = "MT Evaluation Framework. Helps researchers & engineers evaluate their "
-authors = ["Nikita Trynus <trynuspoc@gmail.com>"]
+version = "0.2.0"
+description = "MT Evaluation Framework. Helps researchers & engineers evaluate mt results"
+authors = [
+    { name = "Nikita Trynus", email = "trynuspoc@gmail.com" }
+]
 readme = "README.md"
-packages = [{include = "mt_evaluation"}]
+requires-python = ">= 3.10"
+dependencies = [
+    "evaluate>=0.4.3",
+    "typer>=0.12.5",
+    "typing-extensions>=4.12.2",
+    "pydantic>=2.9.2",
+    "sacrebleu>=2.4.3",
+    "ctranslate2[translate]>=4.5.0",
+    "nltk>=3.9.1",
+    "unbabel-comet>=2.2.2",
+    "bert-score>=0.3.13",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-ctranslate2 = "^3.22.0"
-evaluate = "^0.4.1"
-typer = "^0.9.0"
-typing-extensions = "^4.8.0"
-sentencepiece = "^0.1.99"
-pydantic = "^2.5.2"
-nltk = "^3.8.1"
-sacrebleu = "^2.3.3"
+[tool.rye]
+dev-dependencies = [
+    "ruff>=0.7.0",
+    "pre-commit>=4.0.1",
+    "mypy>=1.13.0",
+]
 
+[tool.rye.scripts]
+evaluate = { cmd = ["python", "mt_evaluation/main.py", "evaluate-file"] }
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.1.6"
-pre-commit = "^3.5.0"
-isort = "^5.12.0"
-mypy = "^1.7.1"
-
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
-
-[tool.poetry.scripts]
-mt-evaluation = "mt_evaluation.app:app"
