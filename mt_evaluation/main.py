@@ -2,21 +2,29 @@
 The main module of the application
 """
 
+import json
 import time
 from typing import Callable, Dict, List
 
-import sentencepiece as spm  # type: ignore
 import typer  # type: ignore
 from typing_extensions import Annotated
 
 from mt_evaluation.file_utils import write_to_file, get_sentences_from_file
 from mt_evaluation.logger import logger, log_hr
 from mt_evaluation.metrics_utils import (
+    evaluate_bert_score,
+    evaluate_bleu,
     evaluate_bleu_score_per_sentence,
+    evaluate_chrf,
+    evaluate_comet,
+    evaluate_cometkiwi_da_xl,
+    evaluate_cometkiwi_da_xxl,  # noqa: F401
     evaluate_meteor_score_per_sentence,
-    evaluate_nist_score_per_sentence,
-    evaluate_ter_score_per_sentence,
     evaluate_comet_score_per_sentence,
+    evaluate_spbleu_101,
+    evaluate_spbleu_200,
+    evaluate_xcomet_xl,
+    evaluate_xcomet_xxl,  # noqa: F401
 )
 from mt_evaluation.sentence_utils import (
     decode_sentences,
@@ -31,21 +39,19 @@ METRIC_TO_FUNCTION: Dict[str, Callable] = {
     "bleu": evaluate_bleu_score_per_sentence,
     "meteor": evaluate_meteor_score_per_sentence,
     "comet": evaluate_comet_score_per_sentence,
-    "nist": evaluate_nist_score_per_sentence,
-    "ter": evaluate_ter_score_per_sentence,
 }
 
 
 @app.command()
 def evaluate_model(
     source_file_path: Annotated[str, typer.Option()],
-    target_file_path: Annotated[str, typer.Option()],
     translation_model_path: Annotated[str, typer.Option()],
     src_prefix: Annotated[str, typer.Option()],
     target_prefix: Annotated[str, typer.Option()],
     tokenizer_model_path: Annotated[str, typer.Option()],
     validation_field_name: Annotated[str, typer.Option()],
     source_field_name: Annotated[str, typer.Option()],
+    target_file_path: Annotated[str, typer.Option()] = "mt_metrics",
     metrics: Annotated[List[str], typer.Option()] = ["bleu", "meteor"],
     device: str = "cpu",
     beam_size: int = 5,
@@ -77,6 +83,8 @@ def evaluate_model(
     Returns:
         None
     """
+    import sentencepiece as spm  # type: ignore
+
     start = time.time()
     logger.info(f"Creating SentencePieceProcessor from {tokenizer_model_path}...")
 
@@ -168,14 +176,17 @@ def evaluate_model(
     logger.info(f"Execution lasted for {time.time() - start}")
 
 
-@app.command()
-def evaluate_сsv(
+@app.command(name="evaluate-file")
+def evaluate_file(
     source_file_path: Annotated[str, typer.Option()],
-    target_file_path: Annotated[str, typer.Option()],
     validation_field_name: Annotated[str, typer.Option()],
     translation_field_name: Annotated[str, typer.Option()],
     source_field_name: Annotated[str, typer.Option()],
-    metrics: Annotated[List[str], typer.Option()] = ["bleu", "meteor"],
+    target_file_path: Annotated[str, typer.Option()] = "mt_metrics.jsonl",
+    metrics: Annotated[List[str], typer.Option()] = [
+        "bleu",
+        "meteor",
+    ],
 ) -> None:
     """
     Evaluate the csv file with translations
@@ -198,29 +209,46 @@ def evaluate_сsv(
     translation_sentences = get_sentences_from_file(
         source_file_path, translation_field_name
     )
-    metrics_evaluated: Dict[str, List[float]] = {}
-    for metric in metrics:
-        if metric not in METRIC_TO_FUNCTION:
-            logger.error(
-                f"Metric {metric} is not available. Please select from {METRIC_TO_FUNCTION.keys()}",
-            )
-        else:
-            evaluation_results = METRIC_TO_FUNCTION[metric](
-                translation_sentences=translation_sentences,
-                validation_sentences=validation_sentences,
-            )
-        metrics_evaluated[metric] = evaluation_results
-
-    logger.info("Evaluation completed")
     log_hr()
-    logger.info(f"Writing results to file {target_file_path}...")
-    write_to_file(
-        target_file_path=target_file_path,
-        source_sentences=source_sentences,
-        translation_sentences=translation_sentences,
-        validation_sentences=validation_sentences,
-        metrics_evaluated=metrics_evaluated,
+    score_bleu = evaluate_bleu(translation_sentences, validation_sentences)
+    score_spbleu_101 = evaluate_spbleu_101(translation_sentences, validation_sentences)
+    score_spbleu_200 = evaluate_spbleu_200(translation_sentences, validation_sentences)
+    score_chrf = evaluate_chrf(translation_sentences, validation_sentences)
+    score_bert_score = evaluate_bert_score(translation_sentences, validation_sentences)
+    logger.info("Comet is running...")
+    score_comet = evaluate_comet(
+        translation_sentences, validation_sentences, source_sentences
     )
-    logger.info("Results saved")
+    log_hr()
+    logger.info("Cometkiwi-da-xl is running...")
+    score_cometkiwi_da_xl = evaluate_cometkiwi_da_xl(translation_sentences, source_sentences)
+    log_hr()
+    logger.info("Cometkiwi-da-xxl is running...")
+    score_cometkiwi_da_xxl = evaluate_cometkiwi_da_xxl(translation_sentences, source_sentences)
+    log_hr()
+    logger.info("Xcomet-xl is running...")
+    score_xcomet_xl = evaluate_xcomet_xl(translation_sentences, validation_sentences, source_sentences)
+    log_hr()
+    logger.info("Xcomet-xxl is running...")
+    score_xcomet_xxl = evaluate_xcomet_xxl(translation_sentences, validation_sentences, source_sentences)
+    metrics = [
+        {"metric": "bleu"} | score_bleu,
+        {"metric": "spbleu-101"} | score_spbleu_101,
+        {"metric": "spbleu-200"} | score_spbleu_200,
+        {"metric": "chrf"} | score_chrf,
+        {"metric": "comet"} | score_comet,
+        {"metric": "cometkiwi-da-xl"} | score_cometkiwi_da_xl,
+        {"metric": "cometkiwi-da-xxl"} | score_cometkiwi_da_xxl,
+        {"metric": "xcomet-xl"} | score_xcomet_xl,
+        {"metric": "xcomet-xxl"} | score_xcomet_xxl,
+        {"metric": "bertscore"} | score_bert_score,
+    ]
+    with open(f"{target_file_path}", "w") as file_obj:
+        for metric in metrics:
+            file_obj.write(json.dumps(metric) + "\n")
     log_hr()
     logger.info(f"Execution lasted for {time.time() - start}")
+
+
+if __name__ == "__main__":
+    app()

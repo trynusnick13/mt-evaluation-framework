@@ -2,9 +2,11 @@
 This module contains functions to compute the scores of the different metrics
 using huggingface's evaluate library.
 """
+
 from typing import List
 
-import evaluate # type: ignore
+from comet import download_model, load_from_checkpoint
+import evaluate  # type: ignore
 
 
 def evaluate_bleu_score_per_sentence(
@@ -103,3 +105,161 @@ def evaluate_chrf_score_per_sentence(
     scores = [result["score"] for result in results]
 
     return scores
+
+
+def evaluate_bleu(
+    translation_sentences: List[str], validation_sentences: List[str]
+) -> List[float]:
+    sacrebleu = evaluate.load("sacrebleu")
+    score_bleu = sacrebleu.compute(
+        predictions=translation_sentences, references=validation_sentences
+    )
+
+    return score_bleu
+
+
+def evaluate_spbleu_101(
+    translation_sentences: List[str], validation_sentences: List[str]
+) -> List[float]:
+    sacrebleu = evaluate.load("sacrebleu")
+    score_spbleu_101 = sacrebleu.compute(
+        predictions=translation_sentences,
+        references=validation_sentences,
+        tokenize="flores101",
+    )
+
+    return score_spbleu_101
+
+
+def evaluate_spbleu_200(
+    translation_sentences: List[str], validation_sentences: List[str]
+) -> List[float]:
+    sacrebleu = evaluate.load("sacrebleu")
+    score_spbleu_200 = sacrebleu.compute(
+        predictions=translation_sentences,
+        references=validation_sentences,
+        tokenize="flores200",
+    )
+
+    return score_spbleu_200
+
+
+def evaluate_chrf(
+    translation_sentences: List[str], validation_sentences: List[str]
+) -> List[float]:
+    chrf = evaluate.load("chrf")
+    score_chrf = chrf.compute(
+        predictions=translation_sentences, references=validation_sentences
+    )
+
+    return score_chrf
+
+
+def evaluate_comet(
+    translation_sentences: List[str],
+    validation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/wmt22-comet-da")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt, "ref": ref}
+        for src, mt, ref in zip(
+            source_sentences, translation_sentences, validation_sentences
+        )
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+
+    return model_output
+
+
+def evaluate_cometkiwi_da_xl(
+    translation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/wmt23-cometkiwi-da-xl")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt}
+        for src, mt in zip(source_sentences, translation_sentences)
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
+
+def evaluate_cometkiwi_da_xxl(
+    translation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/wmt23-cometkiwi-da-xxl")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt}
+        for src, mt in zip(source_sentences, translation_sentences)
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
+
+def evaluate_xcomet_xxl(
+    translation_sentences: List[str],
+    validation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/XCOMET-XXL")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt, "ref": ref}
+        for src, mt, ref in zip(
+            source_sentences, translation_sentences, validation_sentences
+        )
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
+
+def evaluate_xcomet_xl(
+    translation_sentences: List[str],
+    validation_sentences: List[str],
+    source_sentences: List[str],
+) -> List[float]:
+    model_path = download_model("Unbabel/XCOMET-XL")
+    model = load_from_checkpoint(model_path)
+    data = [
+        {"src": src, "mt": mt, "ref": ref}
+        for src, mt, ref in zip(
+            source_sentences, translation_sentences, validation_sentences
+        )
+    ]
+    model_output = model.predict(
+        data,
+        batch_size=16,
+    )
+    return model_output
+
+
+
+def evaluate_bert_score(
+    translation_sentences: List[str], validation_sentences: List[str]
+) -> List[float]:
+    bertscore = evaluate.load("bertscore")
+    score_bert = bertscore.compute(
+        predictions=translation_sentences,
+        references=validation_sentences,
+        lang="uk",
+        model_type="distilbert-base-uncased",
+    )
+
+    return score_bert
